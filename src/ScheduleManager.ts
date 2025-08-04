@@ -131,7 +131,6 @@ class ScheduleManager {
     console.log("Computed memberShiftLimits", memberShiftLimits);
     return memberShiftLimits;
   }
-
   // reseteaza starea programului pentru o noua incercare
   private resetTeamShiftsCounts(): void {
     this.totalShiftsCount = this.nullifyShiftCounterPerMember();
@@ -191,13 +190,23 @@ class ScheduleManager {
     const schedule: WeekSchedule = {};
     if (!this.initializeSundaysOnSchedule(schedule)) return null;
 
-    // incepe asignarea de la tura de noapte de duminica
+    const sundayIndex = this.config.days.indexOf("Sunday");
+    const nightShiftIndex = this.config.shifts.indexOf("Night");
+
+    // recursive assignment of shifts for each day starting from Sunday Night
     const isScheduleGenerated = this.shiftAssignment.assignShiftForDay(
-      0,
-      2,
+      sundayIndex,
+      nightShiftIndex,
       schedule
     );
     return isScheduleGenerated ? schedule : null;
+  }
+
+  private membersHaveEnoughShifts(schedule: WeekSchedule): boolean {
+    return Object.keys(this.totalShiftsCount).every(
+      (member) =>
+        this.totalShiftsCount[member] >= this.memberShiftLimits[member]
+    );
   }
 
   // genereaza un program valid, reincercand daca este necesar
@@ -205,13 +214,7 @@ class ScheduleManager {
     let schedule: WeekSchedule | null = this.buildSchedule();
 
     // reincearca pana cand toti membrii au suficiente ture
-    while (
-      schedule &&
-      Object.keys(this.totalShiftsCount).some(
-        (member) =>
-          this.totalShiftsCount[member] < this.memberShiftLimits[member]
-      )
-    ) {
+    while (schedule && !this.membersHaveEnoughShifts(schedule)) {
       logger.log(":x: unii membri nu au suficiente ture. se regenereaza...");
       this.resetTeamShiftsCounts();
       schedule = this.buildSchedule();
