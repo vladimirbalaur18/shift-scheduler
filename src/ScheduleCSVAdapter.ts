@@ -25,7 +25,7 @@ export class ScheduleCSVAdapter {
 
     // crearea continutului final si salvarea in fisier
     const csvContent = rows.join("\n");
-    writeFileSync("schedule.csv", csvContent);
+    writeFileSync("src/resources/schedule.csv", csvContent);
     console.log("program exportat in schedule.csv");
   }
 }
