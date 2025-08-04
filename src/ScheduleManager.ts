@@ -2,11 +2,11 @@
 // implementeaza logica de baza pentru crearea si validarea programului
 
 import { ScheduleConfig, Day, Shift, WeekSchedule, DayShift } from "./types";
-import { ScheduleComponentFactory } from "./ScheduleComponentFactory";
+import { ScheduleComponentFactory } from "./builders/ScheduleComponentFactory";
 import { ShiftConstraints } from "./ShiftConstraints";
 import { ShiftPreferences } from "./ShiftPreferences";
 import { ShiftAssignment } from "./ShiftAssignment";
-import { Logger } from "./logger";
+import { Logger } from "./lib/logger/logger";
 import { ConcreteScheduleMediator } from "./mediator/ScheduleMediator";
 
 const logger = Logger.getInstance();

@@ -1,16 +1,10 @@
 // implementarea pattern-ului adapter pentru conversia programului in format csv
 
-import { ScheduleManager } from "./ScheduleManager";
+import { ScheduleManager } from "../ScheduleManager";
 import { writeFileSync } from "fs";
-import { WeekSchedule } from "./types";
+import { WeekSchedule } from "../types";
 
 export class ScheduleCSVAdapter {
-  private scheduleManager: ScheduleManager;
-
-  constructor(scheduleManager: ScheduleManager) {
-    this.scheduleManager = scheduleManager;
-  }
-
   generateCSV(schedule: WeekSchedule): void {
     // definirea antetului fisierului csv
     const headers = ["Day", "Shift", "Worker"];

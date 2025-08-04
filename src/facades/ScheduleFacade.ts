@@ -1,17 +1,17 @@
 // implementarea pattern-ului facade pentru simplificarea interfetei sistemului
 // coordoneaza toate componentele si ofera o interfata simplificata pentru client
 
-import { Logger } from "./logger";
-import { ScheduleConfigBuilder } from "./ScheduleConfigBuilder";
-import { ScheduleManager } from "./ScheduleManager";
-import { ScheduleCSVAdapter } from "./ScheduleCSVAdapter";
-import { TimestampLogger } from "./TimestampDecorator";
-import { Subject } from "./Observer";
-import { TeamValidationHandler } from "./handlers/TeamValidationHandler";
-import { ShiftsValidationHandler } from "./handlers/ShiftsValidationHandler";
-import { ConstraintsValidationHandler } from "./handlers/ConstraintsValidationHandler";
-import { ScheduleHandler } from "./handlers/ScheduleHandler";
-import { Day, Shift, DayShift } from "./types";
+import { Logger } from "../lib/logger/logger";
+import { ScheduleConfigBuilder } from "../builders/ScheduleConfigBuilder";
+import { ScheduleManager } from "../ScheduleManager";
+import { ScheduleCSVAdapter } from "../adapter/ScheduleCSVAdapter";
+import { TimestampLogger } from "../lib/logger/TimestampDecorator";
+import { Subject } from "../observers/Observer";
+import { TeamValidationHandler } from "../handlers/TeamValidationHandler";
+import { ShiftsValidationHandler } from "../handlers/ShiftsValidationHandler";
+import { ConstraintsValidationHandler } from "../handlers/ConstraintsValidationHandler";
+import { ScheduleHandler } from "../handlers/ScheduleHandler";
+import { Day, Shift, DayShift } from "../types";
 
 export class ScheduleFacade extends Subject {
   private baseLogger: Logger;
@@ -19,6 +19,12 @@ export class ScheduleFacade extends Subject {
   private configBuilder: ScheduleConfigBuilder;
   private scheduleManager: ScheduleManager | null = null;
   private validationChain: ScheduleHandler;
+
+  static events = {
+    scheduleGenerated: "scheduleGenerated",
+    scheduleConfigured: "scheduleConfigured",
+    error: "error",
+  };
 
   constructor() {
     super();
@@ -62,13 +68,13 @@ export class ScheduleFacade extends Subject {
 
     // valideaza configuratia folosind lantul de responsabilitate
     if (!this.validationChain.handle(builtConfig)) {
-      this.notify("error", "validarea configuratiei a esuat");
+      this.notify(ScheduleFacade.events.error, "validarea configuratiei a esuat");
       return;
     }
 
     // initializeaza managerul de program cu configuratia validata
     this.scheduleManager = new ScheduleManager(builtConfig);
-    this.notify("scheduleConfigured", builtConfig);
+    this.notify(ScheduleFacade.events.scheduleConfigured, builtConfig);
   }
 
   generateAndLogSchedule() {
@@ -76,7 +82,10 @@ export class ScheduleFacade extends Subject {
       this.timestampLogger.error(
         "schedulemanager nu este initializat. configurati programul mai intai."
       );
-      this.notify("error", "schedulemanager nu este initializat.");
+      this.notify(
+        ScheduleFacade.events.error,
+        "schedulemanager nu este initializat."
+      );
       return;
     }
 
@@ -85,12 +94,15 @@ export class ScheduleFacade extends Subject {
 
     if (!finalSchedule) {
       this.timestampLogger.error("nu s-a putut genera un program valid.");
-      this.notify("error", "nu s-a putut genera un program valid.");
+      this.notify(
+        ScheduleFacade.events.error,
+        "nu s-a putut genera un program valid."
+      );
     } else {
       this.timestampLogger.log("programul final:");
       this.scheduleManager.printSchedule(finalSchedule);
 
-      this.notify("scheduleGenerated", finalSchedule);
+      this.notify(ScheduleFacade.events.scheduleGenerated, finalSchedule);
     }
   }
 

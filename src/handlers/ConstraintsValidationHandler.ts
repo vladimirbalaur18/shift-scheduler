@@ -2,7 +2,7 @@
 
 import { ScheduleConfig, DayShift } from "../types";
 import { BaseScheduleHandler } from "./ScheduleHandler";
-import { Logger } from "../logger";
+import { Logger } from "../lib/logger/logger";
 
 export class ConstraintsValidationHandler extends BaseScheduleHandler {
   private logger = Logger.getInstance();

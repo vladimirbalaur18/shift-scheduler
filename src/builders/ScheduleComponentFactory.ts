@@ -1,10 +1,10 @@
 // implementarea pattern-ului factory pentru crearea componentelor sistemului de programare
 
-import { ShiftAssignment } from "./ShiftAssignment";
-import { ShiftConstraints } from "./ShiftConstraints";
-import { ShiftPreferences } from "./ShiftPreferences";
-import { ScheduleConfig, Shift } from "./types";
-import { ConcreteScheduleMediator } from "./mediator/ScheduleMediator";
+import { ShiftAssignment } from "../ShiftAssignment";
+import { ShiftConstraints } from "../ShiftConstraints";
+import { ShiftPreferences } from "../ShiftPreferences";
+import { ScheduleConfig, Shift } from "../types";
+import { ConcreteScheduleMediator } from "../mediator/ScheduleMediator";
 
 class ScheduleComponentFactory {
   // creeaza toate componentele necesare sistemului si le conecteaza prin mediator

@@ -2,7 +2,7 @@
 
 import { ScheduleConfig } from "../types";
 import { BaseScheduleHandler } from "./ScheduleHandler";
-import { Logger } from "../logger";
+import { Logger } from "../lib/logger/logger";
 
 export class ShiftsValidationHandler extends BaseScheduleHandler {
   private logger = Logger.getInstance();

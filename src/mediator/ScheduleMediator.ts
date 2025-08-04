@@ -7,23 +7,18 @@ import { ShiftPreferences } from "../ShiftPreferences";
 
 // Interfața mediatorului care definește metodele de comunicare între componente
 export interface ScheduleMediator {
-  // Notifică despre asignarea unei ture
   notifyShiftAssignment(member: string, dayIndex: number, shift: Shift): void;
-  // Verifică disponibilitatea unui membru pentru o tură
   checkMemberAvailability(
     member: string,
     dayIndex: number,
     shift: Shift
   ): boolean;
-  // Obține membrii grupați după preferințele lor pentru o tură
   getMembersByPreference(dayShiftKey: DayShift): {
     desiredMembers: string[];
     neutralMembers: string[];
     undesiredMembers: string[];
   };
-  // Anulează asignarea unei ture
   undoShiftAssignment(member: string, dayIndex: number, shift: Shift): void;
-  // Înregistrează componentele în mediator
   registerComponent(
     component: "assignment" | "constraints" | "preferences",
     instance: any

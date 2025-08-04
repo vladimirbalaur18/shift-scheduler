@@ -1,10 +1,12 @@
-import { ScheduleFacade } from "./ScheduleFacade";
-import { CSVExportObserver } from "./CSVExportObserver";
-import { ExcelExportObserver } from "./ExcelExportObserver";
+import { ScheduleFacade } from "./facades/ScheduleFacade";
+import { CSVExportObserver } from "./observers/CSVExportObserver";
+import { ExcelExportObserver } from "./observers/ExcelExportObserver";
 
-const scheduleFacade = new ScheduleFacade();
+const SCHEDULE_GENERATED_EVENT = ScheduleFacade.events.scheduleGenerated;
 
-scheduleFacade.configureSchedule({
+const scheduleMaker = new ScheduleFacade();
+
+scheduleMaker.configureSchedule({
   team: ["Vladimir", "Daniel", "Dan", "Cristin", "Alexandru"],
   days: [
     "Sunday",
@@ -77,12 +79,15 @@ scheduleFacade.configureSchedule({
   sundayWorker: "Alexandru",
 });
 
-const csvObserver = new CSVExportObserver(scheduleFacade.getScheduleManager());
-scheduleFacade.addObserver(csvObserver);
+const csvObserver = new CSVExportObserver({
+  exportOnEvent: SCHEDULE_GENERATED_EVENT,
+});
+const excelObserver = new ExcelExportObserver({
+  exportOnEvent: SCHEDULE_GENERATED_EVENT,
+});
 
-const excelObserver = new ExcelExportObserver(
-  scheduleFacade.getScheduleManager()
-);
-scheduleFacade.addObserver(excelObserver);
+//hook observers to the scheduleMaker
+scheduleMaker.addObserver(csvObserver);
+scheduleMaker.addObserver(excelObserver);
 
-const finalSchedule = scheduleFacade.generateAndLogSchedule();
+scheduleMaker.generateAndLogSchedule();

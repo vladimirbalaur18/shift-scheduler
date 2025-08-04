@@ -1,4 +1,3 @@
-
 import { Day, Shift, DayShift, WeekSchedule } from "./types";
 import { ScheduleMediator } from "./mediator/ScheduleMediator";
 

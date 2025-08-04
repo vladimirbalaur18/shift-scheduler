@@ -1,6 +1,6 @@
 // implementarea pattern-ului builder pentru construirea configuratiei programului de lucru
 
-import { ScheduleConfig, Day, Shift, DayShift } from "./types";
+import { ScheduleConfig, Day, Shift, DayShift } from "../types";
 
 class ScheduleConfigBuilder {
   private config: Partial<ScheduleConfig> = {};

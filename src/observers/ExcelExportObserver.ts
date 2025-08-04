@@ -1,19 +1,21 @@
 import { Observer } from "./Observer";
-import { ScheduleManager } from "./ScheduleManager";
+import { ScheduleManager } from "../ScheduleManager";
 import * as Excel from "exceljs";
-import { Day, Shift, WeekSchedule as Schedule } from "./types";
+import { Day, Shift, WeekSchedule as Schedule } from "../types";
 
 class ExcelExportObserver implements Observer {
-  private scheduleManager: ScheduleManager;
   private readonly filePath = "src/resources/ScheduleLatest.xlsx";
   private readonly sheetName = "Sheet1"; // Should match the actual sheet name in the template
+  private triggers: {
+    exportOnEvent: string;
+  };
 
-  constructor(scheduleManager: ScheduleManager) {
-    this.scheduleManager = scheduleManager;
+  constructor(triggers: { exportOnEvent: string }) {
+    this.triggers = triggers;
   }
 
   async update(event: string, data?: any): Promise<void> {
-    if (event === "scheduleGenerated" && data) {
+    if (event === this.triggers.exportOnEvent && data) {
       try {
         await this.exportToExcel(data);
         console.log("Schedule successfully exported to Excel.");
@@ -48,7 +50,9 @@ class ExcelExportObserver implements Observer {
     const upcomingSunday = new Date(today);
     upcomingSunday.setHours(12, 0, 0, 0);
     // Always get the upcoming Sunday (not today, even if today is Sunday)
-    upcomingSunday.setDate(today.getDate() + ((7 - today.getDay()) === 0 ? 7 : (7 - today.getDay())));
+    upcomingSunday.setDate(
+      today.getDate() + (7 - today.getDay() === 0 ? 7 : 7 - today.getDay())
+    );
 
     const startDate = upcomingSunday;
     for (let i = 0; i < 7; i++) {
