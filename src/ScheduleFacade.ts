@@ -92,28 +92,6 @@ export class ScheduleFacade extends Subject {
     }
   }
 
-  generateAndExportSchedule() {
-    if (!this.scheduleManager) {
-      this.timestampLogger.error(
-        "schedulemanager nu este initializat. configurati programul mai intai."
-      );
-      this.notify("error", "schedulemanager nu este initializat.");
-      return;
-    }
-
-    this.timestampLogger.log("se genereaza programul...");
-    const finalSchedule = this.scheduleManager.generateValidSchedule();
-
-    if (!finalSchedule) {
-      this.timestampLogger.error("nu s-a putut genera un program valid.");
-      this.notify("error", "nu s-a putut genera un program valid.");
-    } else {
-      this.timestampLogger.log("programul final:");
-      this.scheduleManager.printSchedule(finalSchedule);
-
-      this.notify("scheduleGenerated", finalSchedule);
-    }
-  }
 
   // returneaza managerul de program pentru operatii avansate
   getScheduleManager(): ScheduleManager {
