@@ -24,6 +24,7 @@ class ScheduleComponentFactory {
       shiftSchedule,
       totalShiftsCount,
       limits,
+      config.vacationDays,
       mediator
     );
 

@@ -40,6 +40,11 @@ class ScheduleConfigBuilder {
     return this;
   }
 
+  setVacationDays(map: Record<string, Set<Day>>) {
+    this.config.vacationDays = map;
+    return this;
+  }
+
   build(): ScheduleConfig {
     const requiredFields = [
       "team",
@@ -49,6 +54,7 @@ class ScheduleConfigBuilder {
       "desiredShifts",
       "undesiredShifts",
       "sundayWorker",
+      "vacationDays",
     ];
     for (const field of requiredFields) {
       if (!(field in this.config)) {

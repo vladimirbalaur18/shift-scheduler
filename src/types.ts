@@ -12,6 +12,7 @@ type ScheduleConfig = {
   desiredShifts: Record<string, Set<DayShift>>;
   undesiredShifts: Record<string, Set<DayShift>>;
   sundayWorker: string;
+  vacationDays: Record<string, Set<Day>>;
 };
 
 type WeekSchedule = Record<Day, Record<Shift, string>>;

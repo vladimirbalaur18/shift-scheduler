@@ -10,6 +10,7 @@ class ShiftConstraints {
     private shiftSchedule: Record<string, { dayIndex: number; shift: Shift }[]>,
     private totalShiftsCount: Record<string, number>,
     private memberShiftLimits: Record<string, number>,
+    private vacationDays: Record<string, Set<Day>>,
     mediator: ScheduleMediator
   ) {
     this.mediator = mediator;
@@ -20,6 +21,7 @@ class ShiftConstraints {
     const day = this.days[dayIndex];
     const key: DayShift = `${day}-${shift}`;
     return (
+      !this.vacationDays[member]?.has(day) &&
       !this.unavailableShifts[member]?.has(key) &&
       !this.shiftSchedule[member].some((h) => h.dayIndex === dayIndex) &&
       !this.hasMoreThanThreeConsecutiveNights(member, dayIndex, shift) &&

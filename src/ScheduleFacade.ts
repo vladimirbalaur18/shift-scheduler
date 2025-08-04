@@ -45,6 +45,7 @@ export class ScheduleFacade extends Subject {
     desiredShifts: Record<string, Set<DayShift>>;
     undesiredShifts: Record<string, Set<DayShift>>;
     sundayWorker: string;
+    vacationDays: Record<string, Set<Day>>;
   }) {
     // construieste configuratia folosind builder pattern
     this.configBuilder
@@ -54,7 +55,8 @@ export class ScheduleFacade extends Subject {
       .setUnavailableShifts(config.unavailableShifts)
       .setDesiredShifts(config.desiredShifts)
       .setUndesiredShifts(config.undesiredShifts)
-      .setSundayWorker(config.sundayWorker);
+      .setSundayWorker(config.sundayWorker)
+      .setVacationDays(config.vacationDays);
 
     const builtConfig = this.configBuilder.build();
 
@@ -91,7 +93,6 @@ export class ScheduleFacade extends Subject {
       this.notify("scheduleGenerated", finalSchedule);
     }
   }
-
 
   // returneaza managerul de program pentru operatii avansate
   getScheduleManager(): ScheduleManager {

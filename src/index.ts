@@ -5,8 +5,7 @@ import { ExcelExportObserver } from "./ExcelExportObserver";
 const scheduleFacade = new ScheduleFacade();
 
 scheduleFacade.configureSchedule({
-  team: ["Vladimir", "Daniel", "Dan", "Cristin"],
-
+  team: ["Vladimir", "Daniel", "Dan", "Cristin", "Alexandru"],
   days: [
     "Sunday",
     "Monday",
@@ -55,16 +54,27 @@ scheduleFacade.configureSchedule({
     Daniel: new Set([]),
     Dan: new Set([
       "Monday-Morning",
-      "Monday-Evening",
-      "Monday-Night",
       "Tuesday-Morning",
       "Wednesday-Morning",
       "Thursday-Morning",
       "Friday-Morning",
     ]),
   },
-
-  sundayWorker: "Vladimir",
+  vacationDays: {
+    Vladimir: new Set([]),
+    Cristin: new Set([]),
+    Daniel: new Set([]),
+    Dan: new Set([]),
+    Alexandru: new Set([
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ]),
+  },
+  sundayWorker: "Alexandru",
 });
 
 const csvObserver = new CSVExportObserver(scheduleFacade.getScheduleManager());

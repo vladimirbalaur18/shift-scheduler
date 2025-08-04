@@ -68,13 +68,68 @@ class ScheduleManager {
   private getMaximumShiftsNumberLimitPerTeamMember(): Record<string, number> {
     const totalShifts = this.config.days.length * this.config.shifts.length;
     const shiftsPerMember = Math.floor(totalShifts / this.config.team.length);
+    const memberShiftLimits: Record<string, number> = {};
 
-    return this.config.team.reduce((result, member) => {
-      // adauga o tura in plus pentru angajatul de duminica
-      result[member] =
-        shiftsPerMember + (member === this.config.sundayWorker ? 1 : 0);
-      return result;
-    }, {} as Record<string, number>);
+    let extraShifts = 0;
+
+    // Initial distribution and check for constraints
+    for (const member of this.config.team) {
+      const availableDays =
+        this.config.days.length - (this.config.vacationDays[member]?.size ?? 0);
+
+      if (availableDays < shiftsPerMember) {
+        extraShifts += shiftsPerMember - availableDays;
+        memberShiftLimits[member] = availableDays;
+      } else {
+        memberShiftLimits[member] = shiftsPerMember;
+      }
+    }
+
+    // Redistribute extra shifts to a random eligible member
+    if (extraShifts > 0) {
+      const eligibleMembers = this.config.team.filter(
+        (member) =>
+          memberShiftLimits[member] <
+          this.config.days.length -
+            (this.config.vacationDays[member]?.size ?? 0)
+      );
+
+      if (eligibleMembers.length > 0) {
+        // Distribute extraShifts randomly among eligible members
+        let shiftsToDistribute = extraShifts;
+        let lastMember: string | undefined;
+
+        while (shiftsToDistribute > 0) {
+          // Pick a random member, but not the same one as the last iteration if possible
+          let selectableMembers = lastMember
+            ? eligibleMembers.filter((m) => m !== lastMember)
+            : eligibleMembers;
+
+          if (selectableMembers.length === 0) {
+            selectableMembers = eligibleMembers; // fallback if only one eligible member
+          }
+
+          // Shuffle selectableMembers and pick the first one as random
+          const shuffledMembers = selectableMembers
+            .map((m) => ({ m, sort: Math.random() }))
+            .sort((a, b) => a.sort - b.sort)
+            .map(({ m }) => m);
+          const randomMember = shuffledMembers[0];
+
+          memberShiftLimits[randomMember]++;
+          lastMember = randomMember;
+          shiftsToDistribute--;
+        }
+      }
+    }
+
+    // Handle Sunday worker bonus
+    if (this.config.sundayWorker) {
+      memberShiftLimits[this.config.sundayWorker]++;
+    }
+
+    console.log("Computed memberShiftLimits", memberShiftLimits);
+    return memberShiftLimits;
   }
 
   // reseteaza starea programului pentru o noua incercare
