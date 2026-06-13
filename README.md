@@ -27,7 +27,7 @@ This tool is designed to **distribute shifts fairly** and **automatically resolv
   * `.xlsx` (Excel)
 * ♻️ Fair distribution logic: no member gets too many or too few shifts
 * 🔧 Customizable rules (e.g., max shifts/day, adding / removing members, number of consecutive night shifts)
-* 🧠 Easily extendable logic via modular architecture
+* 🧠 Built using different design patterns, such as Observer, Facade, Adapter, Builder, Mediator, Singleton, Decorator for easily extendable logic and modular architecture. 
 
 ---
 
@@ -83,19 +83,11 @@ In index.ts, make sure to adjust the config to the ScheduleFacade as follows
     "Alexandru": [],
     "Vladimir": [
       "Sunday-Night",
-      "Monday-Night",
-      "Tuesday-Night",
-      "Wednesday-Night",
-      "Thursday-Night",
-      "Friday-Night",
-      "Saturday-Night"
+      "Monday-Night"
     ],
     "Cristin": [],
     "Daniel": [],
     "Dan": [
-      "Monday-Morning",
-      "Tuesday-Morning",
-      "Wednesday-Morning",
       "Thursday-Morning",
       "Friday-Morning"
     ]
