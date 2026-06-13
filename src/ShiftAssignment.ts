@@ -4,7 +4,6 @@ import { ScheduleMediator } from "./mediator/ScheduleMediator";
 class ShiftAssignment {
   private mediator: ScheduleMediator;
   private lastFailedShift: DayShift | null = null;
-  private readonly teamOrderIndex: Map<string, number>;
 
   constructor(
     private days: Day[],
@@ -12,23 +11,43 @@ class ShiftAssignment {
     mediator: ScheduleMediator,
     private totalShiftsCount: Record<string, number>,
     private shiftSchedule: Record<string, { dayIndex: number; shift: Shift }[]>,
-    team: string[],
+    _team: string[],
   ) {
     this.mediator = mediator;
-    this.teamOrderIndex = new Map(team.map((name, i) => [name, i]));
     this.mediator.registerComponent("assignment", this);
   }
 
-  /** Ascending by assigned shifts; stable tie-break: config.team order. */
-  private sortMembersByCurrentLoad(members: string[]): string[] {
-    return [...members].sort((a, b) => {
-      const ca = this.totalShiftsCount[a];
-      const cb = this.totalShiftsCount[b];
-      if (ca !== cb) return ca - cb;
-      return (
-        (this.teamOrderIndex.get(a) ?? 0) - (this.teamOrderIndex.get(b) ?? 0)
-      );
+  /**
+   * Orders candidates so the schedule stays balanced:
+   *   1. fewest shifts of THIS type already worked (even out mornings/evenings/nights),
+   *   2. then fewest total shifts (even out overall load),
+   *   3. then a random tie-break among equals (lets best-of-N explore variants).
+   * Relies on a stable sort: pre-shuffling randomizes the order of equal-key members.
+   */
+  private sortMembersForShift(members: string[], shift: Shift): string[] {
+    const shuffled = this.shuffle([...members]);
+    return shuffled.sort((a, b) => {
+      const ta = this.countShiftsOfType(a, shift);
+      const tb = this.countShiftsOfType(b, shift);
+      if (ta !== tb) return ta - tb;
+      return this.totalShiftsCount[a] - this.totalShiftsCount[b];
     });
+  }
+
+  private countShiftsOfType(member: string, shift: Shift): number {
+    let count = 0;
+    for (const h of this.shiftSchedule[member]) {
+      if (h.shift === shift) count++;
+    }
+    return count;
+  }
+
+  private shuffle<T>(array: T[]): T[] {
+    for (let i = array.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
   }
 
   clearLastFailure(): void {
@@ -109,9 +128,9 @@ class ShiftAssignment {
     // obtine membrii grupati dupa preferintele lor pentru aceasta tura
     const availableGroups = this.mediator.getMembersByPreference(dayShiftKey);
     const availableMembersGroups = [
-      this.sortMembersByCurrentLoad(availableGroups.desiredMembers),
-      this.sortMembersByCurrentLoad(availableGroups.neutralMembers),
-      this.sortMembersByCurrentLoad(availableGroups.undesiredMembers),
+      this.sortMembersForShift(availableGroups.desiredMembers, currentShift),
+      this.sortMembersForShift(availableGroups.neutralMembers, currentShift),
+      this.sortMembersForShift(availableGroups.undesiredMembers, currentShift),
     ];
 
     // incearca sa asigneze tura unui membru disponibil

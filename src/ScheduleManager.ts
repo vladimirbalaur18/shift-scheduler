@@ -65,17 +65,39 @@ class ScheduleManager {
     return Object.fromEntries(this.config.team.map((name) => [name, []]));
   }
 
+  // numarul real de zile in care un membru poate lucra: zile fara concediu in
+  // care exista cel putin o tura disponibila (regula: o singura tura pe zi).
+  // Tine cont atat de vacationDays cat si de unavailableShifts, astfel incat
+  // membrii indisponibili in majoritatea zilelor sa primeasca mai putine ture.
+  private workableDaysCount(member: string): number {
+    let count = 0;
+    for (const day of this.config.days) {
+      if (this.config.vacationDays[member]?.has(day)) continue;
+      const hasAvailableShift = this.config.shifts.some(
+        (shift) =>
+          !this.config.unavailableShifts[member]?.has(`${day}-${shift}`)
+      );
+      if (hasAvailableShift) count++;
+    }
+    return count;
+  }
+
   private getMaximumShiftsNumberLimitPerTeamMember(): Record<string, number> {
     const totalShifts = this.config.days.length * this.config.shifts.length;
     const shiftsPerMember = Math.floor(totalShifts / this.config.team.length);
     const memberShiftLimits: Record<string, number> = {};
 
+    const capacity: Record<string, number> = {};
+    for (const member of this.config.team) {
+      capacity[member] = this.workableDaysCount(member);
+    }
+
     let extraShifts = 0;
 
-    // Initial distribution and check for constraints
+    // Distributie initiala: fiecare primeste cota egala, plafonata la capacitatea
+    // sa reala. Deficitul membrilor cu disponibilitate redusa este redistribuit.
     for (const member of this.config.team) {
-      const availableDays =
-        this.config.days.length - (this.config.vacationDays[member]?.size ?? 0);
+      const availableDays = capacity[member];
 
       if (availableDays < shiftsPerMember) {
         extraShifts += shiftsPerMember - availableDays;
@@ -88,14 +110,11 @@ class ScheduleManager {
     // Redistribute extra shifts by water-filling: always top up eligible members
     // with the smallest current limit (stable tie-break: first in config.team order).
     if (extraShifts > 0) {
-      const maxWorkableDays = (member: string) =>
-        this.config.days.length - (this.config.vacationDays[member]?.size ?? 0);
-
       let shiftsToDistribute = extraShifts;
       while (shiftsToDistribute > 0) {
         let minLimit = Infinity;
         for (const member of this.config.team) {
-          if (memberShiftLimits[member] >= maxWorkableDays(member)) continue;
+          if (memberShiftLimits[member] >= capacity[member]) continue;
           const lim = memberShiftLimits[member];
           if (lim < minLimit) minLimit = lim;
         }
@@ -103,7 +122,7 @@ class ScheduleManager {
 
         const chosen = this.config.team.find(
           (member) =>
-            memberShiftLimits[member] < maxWorkableDays(member) &&
+            memberShiftLimits[member] < capacity[member] &&
             memberShiftLimits[member] === minLimit
         );
         if (!chosen) break;
@@ -207,18 +226,73 @@ class ScheduleManager {
     );
   }
 
-  // genereaza un program valid, reincercand daca este necesar
-  public generateValidSchedule(): WeekSchedule | null {
-    let schedule: WeekSchedule | null = this.buildSchedule();
+  // limite pentru cautarea celui mai echilibrat program: numar maxim de
+  // incercari, buget de timp si oprire timpurie cand nu se mai imbunatateste
+  private static readonly BALANCE_ATTEMPTS = 500;
+  private static readonly BALANCE_TIME_BUDGET_MS = 3000;
+  private static readonly BALANCE_NO_IMPROVEMENT_LIMIT = 120;
 
-    // reincearca pana cand toti membrii au suficiente ture
-    while (schedule && !this.membersHaveEnoughShifts(schedule)) {
-      logger.log(":x: unii membri nu au suficiente ture. se regenereaza...");
+  // genereaza mai multe programe valide si il pastreaza pe cel mai echilibrat
+  // (turele de tip dimineata/seara/noapte distribuite cat mai egal posibil)
+  public generateValidSchedule(): WeekSchedule | null {
+    const deadline = Date.now() + ScheduleManager.BALANCE_TIME_BUDGET_MS;
+
+    let best: WeekSchedule | null = null;
+    let bestScore = Infinity;
+    let fallback: WeekSchedule | null = null;
+    let attemptsSinceImprovement = 0;
+
+    for (
+      let attempt = 0;
+      attempt < ScheduleManager.BALANCE_ATTEMPTS && Date.now() < deadline;
+      attempt++
+    ) {
       this.resetTeamShiftsCounts();
-      schedule = this.buildSchedule();
+      const schedule = this.buildSchedule();
+
+      // fezabilitatea nu depinde de ordinea de cautare (backtracking complet):
+      // daca o incercare esueaza, nicio alta nu va reusi
+      if (!schedule) break;
+
+      if (!fallback) fallback = schedule;
+      if (!this.membersHaveEnoughShifts(schedule)) continue;
+
+      const score = this.computeBalanceScore();
+      if (score < bestScore) {
+        bestScore = score;
+        best = schedule;
+        attemptsSinceImprovement = 0;
+        // 0 = perfect echilibrat, nu se poate mai bine
+        if (score === 0) break;
+      } else {
+        attemptsSinceImprovement++;
+        if (
+          attemptsSinceImprovement >=
+          ScheduleManager.BALANCE_NO_IMPROVEMENT_LIMIT
+        ) {
+          break;
+        }
+      }
     }
 
-    return schedule;
+    return best ?? fallback;
+  }
+
+  // scor de dezechilibru: pentru fiecare tip de tura, suma abaterilor patratice
+  // ale numarului de ture per membru fata de medie. Mai mic = mai echilibrat.
+  private computeBalanceScore(): number {
+    let score = 0;
+    for (const shift of this.config.shifts) {
+      const counts = this.config.team.map(
+        (member) =>
+          this.shiftSchedule[member].filter((h) => h.shift === shift).length
+      );
+      const mean = counts.reduce((sum, c) => sum + c, 0) / counts.length;
+      for (const c of counts) {
+        score += (c - mean) ** 2;
+      }
+    }
+    return score;
   }
 
   getLastFailedShift(): DayShift | null {
@@ -234,10 +308,30 @@ class ScheduleManager {
       });
       logger.log("");
     });
+
+    // statistici calculate din programul ales (nu din ultima incercare)
     logger.log(":bar_chart: distributia turelor:");
     this.config.team.forEach((member) => {
-      logger.log(`  ${member}: ${this.totalShiftsCount[member]} ture`);
+      const perType = this.config.shifts.map((shift) => {
+        const count = this.countMemberShiftsOfType(schedule, member, shift);
+        return `${shift}: ${count}`;
+      });
+      const total = this.config.shifts.reduce(
+        (sum, shift) =>
+          sum + this.countMemberShiftsOfType(schedule, member, shift),
+        0
+      );
+      logger.log(`  ${member}: ${total} ture (${perType.join(", ")})`);
     });
+  }
+
+  private countMemberShiftsOfType(
+    schedule: WeekSchedule,
+    member: string,
+    shift: Shift
+  ): number {
+    return this.config.days.filter((day) => schedule[day]?.[shift] === member)
+      .length;
   }
 }
 
