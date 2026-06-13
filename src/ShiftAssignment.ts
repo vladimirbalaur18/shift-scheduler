@@ -39,16 +39,71 @@ class ShiftAssignment {
     return this.lastFailedShift;
   }
 
+  /**
+   * Entry point. Assigns every day starting at `dayIndex`, skipping shifts that
+   * are already present in the schedule (e.g. the pre-assigned Sunday worker).
+   * `shiftIndex` is kept for backwards compatibility but is no longer used:
+   * within each day the shift order is now decided dynamically (desired first).
+   */
   assignShiftForDay(
     dayIndex: number,
-    shiftIndex: number,
+    _shiftIndex: number,
     schedule: WeekSchedule,
   ): boolean {
-    // verifica daca am terminat de asignat toate turele
+    return this.assignDay(dayIndex, schedule);
+  }
+
+  private assignDay(dayIndex: number, schedule: WeekSchedule): boolean {
+    // verifica daca am terminat de asignat toate zilele
     if (dayIndex === this.days.length) return true;
 
     const currentDay = this.days[dayIndex];
-    const currentShift = this.shifts[shiftIndex];
+    schedule[currentDay] = schedule[currentDay] || {};
+
+    // doar turele zilei care nu sunt deja completate (ex: duminica preasignata)
+    const pendingShifts = this.shifts.filter(
+      (shift) => schedule[currentDay][shift] === undefined,
+    );
+
+    // turele dorite de cineva sunt asignate inaintea celorlalte, astfel incat
+    // un membru sa nu fie consumat de o tura neutra mai devreme in aceeasi zi
+    const orderedShifts = this.orderShiftsByDesire(dayIndex, pendingShifts);
+
+    return this.assignShiftsInDay(dayIndex, orderedShifts, 0, schedule);
+  }
+
+  /** Shifts wanted by at least one available member come first. */
+  private orderShiftsByDesire(dayIndex: number, pendingShifts: Shift[]): Shift[] {
+    const currentDay = this.days[dayIndex];
+    const desiredFirst: Shift[] = [];
+    const rest: Shift[] = [];
+
+    for (const shift of pendingShifts) {
+      const key: DayShift = `${currentDay}-${shift}`;
+      const groups = this.mediator.getMembersByPreference(key);
+      if (groups.desiredMembers.length > 0) {
+        desiredFirst.push(shift);
+      } else {
+        rest.push(shift);
+      }
+    }
+
+    return [...desiredFirst, ...rest];
+  }
+
+  private assignShiftsInDay(
+    dayIndex: number,
+    orderedShifts: Shift[],
+    pos: number,
+    schedule: WeekSchedule,
+  ): boolean {
+    // toate turele zilei au fost asignate, trece la ziua urmatoare
+    if (pos === orderedShifts.length) {
+      return this.assignDay(dayIndex + 1, schedule);
+    }
+
+    const currentDay = this.days[dayIndex];
+    const currentShift = orderedShifts[pos];
     const dayShiftKey: DayShift = `${currentDay}-${currentShift}`;
 
     // obtine membrii grupati dupa preferintele lor pentru aceasta tura
@@ -59,30 +114,21 @@ class ShiftAssignment {
       this.sortMembersByCurrentLoad(availableGroups.undesiredMembers),
     ];
 
-    // console.log("assigning shift for day", currentDay, currentShift);
-    // console.log("available members groups", availableMembersGroups);
     // incearca sa asigneze tura unui membru disponibil
     for (const group of availableMembersGroups) {
       for (const member of group) {
-        // initializeaza ziua in program daca nu exista
-        schedule[currentDay] = schedule[currentDay] || {};
+        // asigneaza tura si actualizeaza contoarele si istoricul
         schedule[currentDay][currentShift] = member;
-
-        // actualizeaza contoarele si istoricul
         this.totalShiftsCount[member]++;
         this.shiftSchedule[member].push({ dayIndex, shift: currentShift });
         this.mediator.notifyShiftAssignment(member, dayIndex, currentShift);
 
-        // calculeaza urmatoarea tura de asignat
-        const nextShiftIndex = (shiftIndex + 1) % this.shifts.length;
-        const nextDayIndex =
-          shiftIndex === this.shifts.length - 1 ? dayIndex + 1 : dayIndex;
-
-        // incearca sa asigneze urmatoarea tura
-        if (this.assignShiftForDay(nextDayIndex, nextShiftIndex, schedule)) {
+        // incearca sa asigneze urmatoarea tura a zilei
+        if (this.assignShiftsInDay(dayIndex, orderedShifts, pos + 1, schedule)) {
           return true;
         }
 
+        // backtracking: anuleaza asignarea
         this.totalShiftsCount[member]--;
         this.shiftSchedule[member] = this.shiftSchedule[member].filter(
           (h) => h.dayIndex !== dayIndex || h.shift !== currentShift,

@@ -22,8 +22,6 @@ scheduleMaker.configureSchedule({
   unavailableShifts: {
     Alexandru: new Set([]),
     Vladimir: new Set([
-      "Sunday-Morning",
-      "Sunday-Night",
       "Monday-Morning",
       "Monday-Evening",
       "Monday-Night",
@@ -48,7 +46,7 @@ scheduleMaker.configureSchedule({
       "Saturday-Night",
     ]),
     Daniel: new Set([]),
-    Dan: new Set(["Tuesday-Morning"]),
+    Dan: new Set([]),
   },
   vacationDays: {
     Vladimir: new Set([]),
@@ -80,7 +78,7 @@ scheduleMaker.configureSchedule({
     Dan: new Set([]),
   },
 
-  sundayWorker: "Cristin",
+  sundayWorker: "Vladimir",
 });
 
 const csvObserver = new CSVExportObserver({
