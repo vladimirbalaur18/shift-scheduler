@@ -42,7 +42,8 @@ class ScheduleComponentFactory {
       config.shifts,
       mediator,
       totalShiftsCount,
-      shiftSchedule
+      shiftSchedule,
+      config.team
     );
 
     // returneaza toate componentele create si mediatorul

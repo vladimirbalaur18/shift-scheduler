@@ -93,10 +93,16 @@ export class ScheduleFacade extends Subject {
     const finalSchedule = this.scheduleManager.generateValidSchedule();
 
     if (!finalSchedule) {
-      this.timestampLogger.error("nu s-a putut genera un program valid.");
+      const failedShift = this.scheduleManager.getLastFailedShift();
+      const detail = failedShift
+        ? ` ultima tura problematica: ${failedShift}`
+        : "";
+      this.timestampLogger.error(
+        `nu s-a putut genera un program valid.${detail}`
+      );
       this.notify(
         ScheduleFacade.events.error,
-        "nu s-a putut genera un program valid."
+        `nu s-a putut genera un program valid.${detail}`
       );
     } else {
       this.timestampLogger.log("programul final:");

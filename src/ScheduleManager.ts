@@ -85,41 +85,31 @@ class ScheduleManager {
       }
     }
 
-    // Redistribute extra shifts to a random eligible member
+    // Redistribute extra shifts by water-filling: always top up eligible members
+    // with the smallest current limit (stable tie-break: first in config.team order).
     if (extraShifts > 0) {
-      const eligibleMembers = this.config.team.filter(
-        (member) =>
-          memberShiftLimits[member] <
-          this.config.days.length -
-            (this.config.vacationDays[member]?.size ?? 0)
-      );
+      const maxWorkableDays = (member: string) =>
+        this.config.days.length - (this.config.vacationDays[member]?.size ?? 0);
 
-      if (eligibleMembers.length > 0) {
-        // Distribute extraShifts randomly among eligible members
-        let shiftsToDistribute = extraShifts;
-        let lastMember: string | undefined;
-
-        while (shiftsToDistribute > 0) {
-          // Pick a random member, but not the same one as the last iteration if possible
-          let selectableMembers = lastMember
-            ? eligibleMembers.filter((m) => m !== lastMember)
-            : eligibleMembers;
-
-          if (selectableMembers.length === 0) {
-            selectableMembers = eligibleMembers; // fallback if only one eligible member
-          }
-
-          // Shuffle selectableMembers and pick the first one as random
-          const shuffledMembers = selectableMembers
-            .map((m) => ({ m, sort: Math.random() }))
-            .sort((a, b) => a.sort - b.sort)
-            .map(({ m }) => m);
-          const randomMember = shuffledMembers[0];
-
-          memberShiftLimits[randomMember]++;
-          lastMember = randomMember;
-          shiftsToDistribute--;
+      let shiftsToDistribute = extraShifts;
+      while (shiftsToDistribute > 0) {
+        let minLimit = Infinity;
+        for (const member of this.config.team) {
+          if (memberShiftLimits[member] >= maxWorkableDays(member)) continue;
+          const lim = memberShiftLimits[member];
+          if (lim < minLimit) minLimit = lim;
         }
+        if (minLimit === Infinity) break;
+
+        const chosen = this.config.team.find(
+          (member) =>
+            memberShiftLimits[member] < maxWorkableDays(member) &&
+            memberShiftLimits[member] === minLimit
+        );
+        if (!chosen) break;
+
+        memberShiftLimits[chosen]++;
+        shiftsToDistribute--;
       }
     }
 
@@ -163,7 +153,7 @@ class ScheduleManager {
       this.config.unavailableShifts[this.config.sundayWorker]?.has(keyEvening)
     ) {
       logger.error(
-        `:x: ${this.config.sundayWorker} nu este disponibil pentru turele de duminica dimineata sau seara.`
+        `generation failed: sunday worker ${this.config.sundayWorker} unavailable for ${keyMorning} or ${keyEvening}`
       );
       return false;
     }
@@ -193,12 +183,20 @@ class ScheduleManager {
     const sundayIndex = this.config.days.indexOf("Sunday");
     const nightShiftIndex = this.config.shifts.indexOf("Night");
 
-    // recursive assignment of shifts for each day starting from Sunday Night
+    this.shiftAssignment.clearLastFailure();
     const isScheduleGenerated = this.shiftAssignment.assignShiftForDay(
       sundayIndex,
       nightShiftIndex,
       schedule
     );
+    if (!isScheduleGenerated) {
+      const failed = this.shiftAssignment.getLastFailedShift();
+      if (failed) {
+        logger.error(
+          `generation failed: no assignable member for shift ${failed}`
+        );
+      }
+    }
     return isScheduleGenerated ? schedule : null;
   }
 
@@ -221,6 +219,10 @@ class ScheduleManager {
     }
 
     return schedule;
+  }
+
+  getLastFailedShift(): DayShift | null {
+    return this.shiftAssignment.getLastFailedShift();
   }
 
   // afiseaza programul generat si statisticile

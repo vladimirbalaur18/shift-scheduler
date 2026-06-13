@@ -19,64 +19,68 @@ scheduleMaker.configureSchedule({
   ],
 
   shifts: ["Morning", "Evening", "Night"],
-
   unavailableShifts: {
     Alexandru: new Set([]),
-    Vladimir: new Set([]),
-    Cristin: new Set([]),
-    Daniel: new Set([]),
-    Dan: new Set([
+    Vladimir: new Set([
+      "Sunday-Morning",
       "Sunday-Night",
+      "Monday-Morning",
+      "Monday-Evening",
+      "Monday-Night",
+      "Tuesday-Morning",
+      "Tuesday-Night",
+      "Wednesday-Morning",
+      "Wednesday-Night",
+      "Thursday-Morning",
+      "Thursday-Evening",
+      "Thursday-Night",
+      "Friday-Morning",
       "Friday-Night",
       "Saturday-Morning",
-      "Saturday-Evening",
+      "Saturday-Night",
     ]),
-  },
-
-  desiredShifts: {
-    Alexandru: new Set([]),
-    Vladimir: new Set([]),
-    Cristin: new Set([]),
-    Daniel: new Set([]),
-    Dan: new Set([]),
-  },
-
-  undesiredShifts: {
-    Alexandru: new Set([]),
-    Vladimir: new Set([
+    Cristin: new Set([
       "Sunday-Night",
-      "Monday-Night",
       "Tuesday-Night",
       "Wednesday-Night",
       "Thursday-Night",
       "Friday-Night",
       "Saturday-Night",
     ]),
+    Daniel: new Set([]),
+    Dan: new Set(["Tuesday-Morning"]),
+  },
+  vacationDays: {
+    Vladimir: new Set([]),
+    Cristin: new Set(["Monday"]),
+    Daniel: new Set(["Sunday"]),
+    Dan: new Set([]),
+    Alexandru: new Set(["Sunday"]),
+  },
+  desiredShifts: {
+    Alexandru: new Set([]),
+    Vladimir: new Set([]),
     Cristin: new Set([]),
     Daniel: new Set([]),
     Dan: new Set([
-      "Monday-Morning",
-      "Tuesday-Morning",
-      "Wednesday-Morning",
-      "Thursday-Morning",
-      "Friday-Morning",
+      "Sunday-Evening",
+      "Monday-Evening",
+      "Tuesday-Evening",
+      "Wednesday-Evening",
+      "Thursday-Evening",
+      "Friday-Evening",
+      "Saturday-Evening",
     ]),
   },
-  vacationDays: {
+  undesiredShifts: {
+    Alexandru: new Set([]),
     Vladimir: new Set([]),
     Cristin: new Set([]),
     Daniel: new Set([]),
     Dan: new Set([]),
-    Alexandru: new Set([
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-    ]),
   },
-  sundayWorker: "Alexandru",
+
+  sundayWorker: "Cristin",
 });
 
 const csvObserver = new CSVExportObserver({

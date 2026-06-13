@@ -11,7 +11,7 @@ class ShiftConstraints {
     private totalShiftsCount: Record<string, number>,
     private memberShiftLimits: Record<string, number>,
     private vacationDays: Record<string, Set<Day>>,
-    mediator: ScheduleMediator
+    mediator: ScheduleMediator,
   ) {
     this.mediator = mediator;
     this.mediator.registerComponent("constraints", this);
@@ -33,14 +33,14 @@ class ShiftConstraints {
   private hasMoreThanThreeConsecutiveNights(
     member: string,
     dayIndex: number,
-    shift: Shift
+    shift: Shift,
   ): boolean {
     if (shift !== "Night") return false;
     let streak = 1;
     for (let i = dayIndex - 1; i >= 0 && streak <= 3; i--) {
       if (
         this.shiftSchedule[member].some(
-          (h) => h.dayIndex === i && h.shift === "Night"
+          (h) => h.dayIndex === i && h.shift === "Night",
         )
       ) {
         streak++;
@@ -54,11 +54,11 @@ class ShiftConstraints {
   private hasNightBeforeMorningOrEvening(
     member: string,
     dayIndex: number,
-    shift: Shift
+    shift: Shift,
   ): boolean {
     if (shift === "Morning" || shift === "Evening") {
       return this.shiftSchedule[member].some(
-        (h) => h.dayIndex === dayIndex - 1 && h.shift === "Night"
+        (h) => h.dayIndex === dayIndex - 1 && h.shift === "Night",
       );
     }
     return false;
